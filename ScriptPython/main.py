@@ -4,7 +4,8 @@ import capturaRostro as cR
 import entrenamientoRF as eRF
 import reconocimientoFacial as rF
 import validaciones as valid
-from tkinter import ttk
+import connBD as cBD
+from tkinter import messagebox, ttk
 from tkinter import messagebox as MessageBox
 import tkinter as tk
 import cv2
@@ -17,14 +18,19 @@ from PIL import ImageTk
 def contarCoincidencias(nuevoValor):
     global valorAnterior
     global contador
-    if valorAnterior == nuevoValor:
-        contador = contador + 1
-        if contador > 9:
+    if nuevoValor != -1:
+        if valorAnterior == nuevoValor:
+            contador = contador + 1
+            if contador > 9:
+                contador = 0
+                print("Identidad verificada")
+        else:
             contador = 0
-            print("Identidad verificada")
+        valorAnterior = nuevoValor
     else:
         contador = 0
-    valorAnterior = nuevoValor
+        valorAnterior = -2
+    #print("Valores en contar coincidencias: ", nuevoValor, valorAnterior)
 
 def visualizar():
     global cap
@@ -86,17 +92,21 @@ def abrirRegistrar():
             verificado = False
         if verificado:
             print("Hacer consulta")
-            '''
-            # query idRFID
-            if 1:
-                print("id ya registrado")
+            if cBD.consultaBDCarnet(edtCarnetEntry.get()):
+                print("consulta update")
+                if MessageBox.askquestion("Actualizar",'''El número de carnet ya se encuentra registrado 
+                    desea actualizar la información ingresada?''') == "yes":
+                    query = f'update USUARIO set nombre="{edtNombresEntry.get()}", apellido="{edtApellidosEntry.get()}",carnet={edtCarnetEntry.get()},rfid="{lblRFIDlabel.get()}" where carnet={edtCarnetEntry.get()}'
+                    cBD.updateBD(query)
+                    cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
             else:
-                # query carnet
-                if 1:
-                    print("Se actualizaran los datos update")
+                if cBD.consultaBDRfid(lblRFIDlabel.get()):
+                    MessageBox.showinfo("Tarjeta Registrada","La tarjeta ya ha sido registrada, seleccione otra")
                 else:
-                    print("guardar datos insert")
-            '''
+                    cBD.insertarUsuario(edtCarnetEntry.get(), edtNombresEntry.get(),edtApellidosEntry.get(),"Docente","Tarde",lblRFIDlabel.get())
+                    cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
+                    print("Usuario registrado")
+            
         else:
             MessageBox.showinfo("ERROR",mensaje)
     
@@ -104,19 +114,31 @@ def abrirRegistrar():
         print("hola mundo editar")
         if valid.verificarCarnet(edtCarnetEntry.get()):
             # query con carnet
-            if 1 :
+            consulta = cBD.consultaBD(f'select * from USUARIO where carnet={edtCarnetEntry.get()}')
+            print(consulta)
+            if consulta[0] != 0:
+                edtNombresEntry.set(consulta[1][0]["NOMBRE"])
+                edtApellidosEntry.set(consulta[1][0]["APELLIDO"])
+                lblRFIDlabel.set(consulta[1][0]["RFID"])
+                nroCelular = cBD.buscarCelular(edtCarnetEntry.get())
+                edtCelularEntry.set(nroCelular["numero"])
+
                 print('editar campos')
             else:
                 MessageBox.showinfo("ERROR",'CARNET NO REGISTRADO')
 
     def capturaRostro():
         if valid.verificarCarnet(edtCarnetEntry.get()):
-            #query con carnet
-            if 1 == 2:
+            #verificar la lista de carnets en la carpeta data
+            if cBD.consultaBDCarnet(edtCarnetEntry.get()):
+                MessageBox.showinfo("ERROR","EL USUARIO YA REGISTRO SU ROSTRO EN EL SISTEMA")
                 print("Carnet ya registrado")
             else:
                 cR.captura(edtCarnetEntry.get())
+                MessageBox.showinfo("INFORMACIÓN","DEBE REINICIAR EL PROGRAMA PARA APLICAR LOS CAMBIOS")
                 print("Reiniciar el programa despues de entrenar")
+        else:
+            MessageBox.showinfo("ERROR","ANTES DEBE REGISTRAR EL USUARIO")
         print("hola mundo captura")
     
     def iniciarRFID():
@@ -430,9 +452,21 @@ valorAnterior = -1
 contador = 0
 def iniciar():
     if cA.verificarSerial():
-        principal.after(1000,cA.iniciarComunicacion)
-        principal.after(1500,lectorRFID)
-        principal.mainloop()
+        if cBD.iniciarBD():
+            principal.after(1000,cA.iniciarComunicacion)
+            principal.after(1500,lectorRFID)
+            principal.after(2000,iniciarVideo) 
+            principal.mainloop()
+        else:
+            respuestaBD = MessageBox.askquestion(
+                "Error",
+                "El servidor de Base de Datos no se encuentra en línea"+
+                "¿Desea reintentar?"
+            )
+            if respuestaBD:
+                iniciar()
+            else:
+                principal.destroy()
     else:
         respuesta = MessageBox.askquestion(
             "Error",
@@ -449,5 +483,6 @@ if __name__ == "__main__":
     principal.after(1000,cA.iniciarComunicacion)
     principal.after(1500,lectorRFID)
     principal.after(2000,iniciarVideo)
+    principal.after(2500,cBD.iniciarBD)
     principal.mainloop()
 

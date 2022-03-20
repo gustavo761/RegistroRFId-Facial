@@ -3,7 +3,6 @@ import os
 import imutils
 
 def captura(personName='Luis'):
-    #personName = 'Gustavo'
     dataPath = 'D:/Electronica/ControlAcceso/Data'
     personPath = dataPath + '/' + personName
 
