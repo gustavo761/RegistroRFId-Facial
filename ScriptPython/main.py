@@ -376,6 +376,7 @@ def abrirEntrenar():
 def salir():
     cA.finalizarComunicacion()
     detenerVideo()
+    cBD.desconectarBD()
     principal.destroy()
 
 # ----------------------------- main 
