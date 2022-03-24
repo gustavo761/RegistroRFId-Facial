@@ -1,4 +1,5 @@
 import pymysql.cursors
+from datetime import datetime
 
 conn = None
 
@@ -81,10 +82,13 @@ def buscarCelular(carnet):
 
 def listarNombres():
     global conn 
+    respuesta = {}
     cursor = conn.cursor()
-    cursor.execute("select carnet, nombre || apellido from USUARIO")
-    
-
+    cursor.execute("select carnet, nombre, apellido, rfid from USUARIO")
+    for datos in cursor:
+        respuesta[datos["carnet"]] = [datos["nombre"]+" "+datos["apellido"],datos["rfid"]]
+    cursor.close()
+    return respuesta
 
 def updateBD(query):
     global conn
@@ -93,6 +97,24 @@ def updateBD(query):
     cursor.close()
     conn.commit()
     print("Datos actualizados")
+
+def registrarMarcado(carnet,tipo):
+    global conn
+    fecha = datetime.now().date()
+    hora = datetime.now().time()
+    fch = f"{fecha.year}-{fecha.month}-{fecha.day}"
+    hr = f"{hora.hour}:{hora.minute}:{hora.second}"
+    cursor = conn.cursor()
+    query = f"select * from REGISTRO where carnet={carnet} and fecha='{fch}'"
+    respuesta = cursor.execute(query)
+    if respuesta != 0:
+        cursor.execute(f"update REGISTRO set horafinal='{hr}', modoregistro='{tipo}' where carnet={carnet} and fecha='{fch}'")
+        print("Hora de salida registrada")
+    else:
+        cursor.execute(f"insert into REGISTRO (carnet,fecha,horallegada,modoregistro) values ({carnet},'{fch}','{hr}','{tipo}')")
+        print("Hora de llegada registrada")
+    cursor.close()
+    conn.commit()
 
 def desconectarBD():
     global conn

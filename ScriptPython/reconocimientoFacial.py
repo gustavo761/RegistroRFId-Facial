@@ -2,7 +2,7 @@ from glob import glob
 import cv2
 import os
 
-dataPath = 'D:/Electronica/ControlAcceso/Data'
+dataPath = 'D:\Electronica\RegistroRFId-Facial/Data'
 imagePaths = os.listdir(dataPath)
 #print('imagePaths+',imagePaths)
 

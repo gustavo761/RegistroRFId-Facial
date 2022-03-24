@@ -1,21 +1,52 @@
 from ast import AsyncFunctionDef
+from sys import exec_prefix
+
+from cv2 import circle
 import connArduino as cA
 import capturaRostro as cR
 import entrenamientoRF as eRF
 import reconocimientoFacial as rF
 import validaciones as valid
 import connBD as cBD
-from tkinter import messagebox, ttk
+from tkinter import ttk
 from tkinter import messagebox as MessageBox
 import tkinter as tk
 import cv2
 import imutils
 from PIL import Image
 from PIL import ImageTk
+import os 
+
+rostrosRegistrados = os.listdir('D:\Electronica\RegistroRFId-Facial/Data')
+nombresRegistrados = {}
+def listarNombres():
+    global nombresRegistrados
+    nombresRegistrados = cBD.listarNombres()
+    print(nombresRegistrados)
+
+def devolverNombre(carnet):
+    global nombresRegistrados
+    try:
+        return nombresRegistrados[int(carnet)][0]
+    except:
+        return "     NO REGISTRADO"
+
+def buscarCarnet(carnet):
+    global rostrosRegistrados
+    if carnet in rostrosRegistrados:
+        return True
+    return False
+
+def busquedaCarnet(rfid):
+    global nombresRegistrados
+    for carnet in nombresRegistrados:
+        if nombresRegistrados[carnet][1] == rfid:
+            return carnet
+    return 0
 
 # pasar parametros con command=lambda:funcion()
 
-def contarCoincidencias(nuevoValor):
+def contarCoincidencias(nuevoValor,carnet):
     global valorAnterior
     global contador
     if nuevoValor != -1:
@@ -24,6 +55,8 @@ def contarCoincidencias(nuevoValor):
             if contador > 9:
                 contador = 0
                 print("Identidad verificada")
+                cBD.registrarMarcado(carnet,"FACIAL")
+                
         else:
             contador = 0
         valorAnterior = nuevoValor
@@ -39,8 +72,9 @@ def visualizar():
         frame = imutils.resize(frame, width=410)
         #frame = rF.recFacial(frame)
         resultado = rF.recFacial(frame)
-        contarCoincidencias(resultado[0])
-        labelNombre.set(resultado[2])
+        contarCoincidencias(resultado[0],resultado[2])
+        labelNombre.set(devolverNombre(resultado[2]))
+        #labelNombre.set(resultado[2])
         frame = cv2.cvtColor(resultado[1], cv2.COLOR_BGR2RGB)
 
         im = Image.fromarray(frame)
@@ -69,6 +103,12 @@ def lectorRFID():
     if rfidPrincipal:
         idRfid = cA.lecturaDatos()
         if idRfid:
+            #registrar en BD
+            ci = busquedaCarnet(idRfid)
+            if ci != 0:
+                cBD.registrarMarcado(ci,"RFID")
+            else:
+                labelNombre.set("Tarjeta no Registrada")
             print("codigo registrado principal "+ idRfid)
         principal.after(100,lectorRFID)
 
@@ -91,7 +131,7 @@ def abrirRegistrar():
             mensaje = mensaje + "Debe acercar una tarjeta al lector\n"
             verificado = False
         if verificado:
-            print("Hacer consulta")
+            #print("Hacer consulta")
             if cBD.consultaBDCarnet(edtCarnetEntry.get()):
                 print("consulta update")
                 if MessageBox.askquestion("Actualizar",'''El número de carnet ya se encuentra registrado 
@@ -99,14 +139,15 @@ def abrirRegistrar():
                     query = f'update USUARIO set nombre="{edtNombresEntry.get()}", apellido="{edtApellidosEntry.get()}",carnet={edtCarnetEntry.get()},rfid="{lblRFIDlabel.get()}" where carnet={edtCarnetEntry.get()}'
                     cBD.updateBD(query)
                     cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
+                    MessageBox.showinfo("ACTUALIZADO","DATOS ACTUALIZADOS CORRECTAMENTE")
             else:
                 if cBD.consultaBDRfid(lblRFIDlabel.get()):
                     MessageBox.showinfo("Tarjeta Registrada","La tarjeta ya ha sido registrada, seleccione otra")
                 else:
                     cBD.insertarUsuario(edtCarnetEntry.get(), edtNombresEntry.get(),edtApellidosEntry.get(),"Docente","Tarde",lblRFIDlabel.get())
                     cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
-                    print("Usuario registrado")
-            
+                    MessageBox.showinfo("REGISTRADO","USUARIO REGISTRADO CORRECTAMENTE")
+                    print("Usuario registrado") 
         else:
             MessageBox.showinfo("ERROR",mensaje)
     
@@ -122,20 +163,19 @@ def abrirRegistrar():
                 lblRFIDlabel.set(consulta[1][0]["RFID"])
                 nroCelular = cBD.buscarCelular(edtCarnetEntry.get())
                 edtCelularEntry.set(nroCelular["numero"])
-
-                print('editar campos')
+                #print('editar campos')
             else:
                 MessageBox.showinfo("ERROR",'CARNET NO REGISTRADO')
 
     def capturaRostro():
         if valid.verificarCarnet(edtCarnetEntry.get()):
             #verificar la lista de carnets en la carpeta data
-            if cBD.consultaBDCarnet(edtCarnetEntry.get()):
+            if buscarCarnet(edtCarnetEntry.get()):
                 MessageBox.showinfo("ERROR","EL USUARIO YA REGISTRO SU ROSTRO EN EL SISTEMA")
                 print("Carnet ya registrado")
             else:
                 cR.captura(edtCarnetEntry.get())
-                MessageBox.showinfo("INFORMACIÓN","DEBE REINICIAR EL PROGRAMA PARA APLICAR LOS CAMBIOS")
+                MessageBox.showinfo("INFORMACIÓN","DIRIJASE A LA OPCIÓN DE ENTRENAR PARA APLICAR LOS CAMBIOS")
                 print("Reiniciar el programa despues de entrenar")
         else:
             MessageBox.showinfo("ERROR","ANTES DEBE REGISTRAR EL USUARIO")
@@ -397,7 +437,7 @@ lblModoRegistro = tk.Label(principal,
     bd=0,
     textvariable=labelNombre
 )
-lblModoRegistro.place(x=320,y=160)
+lblModoRegistro.place(x=290,y=160)
 
 btnRe = tk.Button(principal,
     text="REGISTRAR", 
@@ -481,9 +521,10 @@ def iniciar():
 
 if __name__ == "__main__":
     #iniciar()
+    principal.after(500,cBD.iniciarBD)
+    principal.after(900,listarNombres)
     principal.after(1000,cA.iniciarComunicacion)
     principal.after(1500,lectorRFID)
     principal.after(2000,iniciarVideo)
-    principal.after(2500,cBD.iniciarBD)
     principal.mainloop()
 

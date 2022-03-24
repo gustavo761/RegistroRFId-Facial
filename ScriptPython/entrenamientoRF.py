@@ -1,9 +1,10 @@
 import cv2
 import os
 import numpy as np
+from tkinter import messagebox as MessageBox
 
 def entrenar():
-    dataPath = 'D:/Electronica/ControlAcceso/Data'
+    dataPath = 'D:\Electronica\RegistroRFId-Facial/Data'
     peopleList = os.listdir(dataPath)
 
     labels = []
@@ -27,5 +28,6 @@ def entrenar():
 
     #Almacenando el modelo obtenido
     face_recognizer.write('modeloLBPHFace.xml')
+    MessageBox.showinfo("COMPLETADO","ENTRENAMIENTO COMPLETADO.\nCIERRE EL PROGRAMA Y VUELVA A INICIAR PARA REGISTRAR LOS CAMBIOS")
     print('Entrenamiendo completado')
 
