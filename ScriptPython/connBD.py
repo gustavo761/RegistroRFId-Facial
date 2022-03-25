@@ -1,5 +1,4 @@
 import pymysql.cursors
-from datetime import datetime
 
 conn = None
 
@@ -98,20 +97,16 @@ def updateBD(query):
     conn.commit()
     print("Datos actualizados")
 
-def registrarMarcado(carnet,tipo):
+def registrarMarcado(carnet,tipo,fecha,hora):
     global conn
-    fecha = datetime.now().date()
-    hora = datetime.now().time()
-    fch = f"{fecha.year}-{fecha.month}-{fecha.day}"
-    hr = f"{hora.hour}:{hora.minute}:{hora.second}"
     cursor = conn.cursor()
-    query = f"select * from REGISTRO where carnet={carnet} and fecha='{fch}'"
+    query = f"select * from REGISTRO where carnet={carnet} and fecha='{fecha}'"
     respuesta = cursor.execute(query)
     if respuesta != 0:
-        cursor.execute(f"update REGISTRO set horafinal='{hr}', modoregistro='{tipo}' where carnet={carnet} and fecha='{fch}'")
+        cursor.execute(f"update REGISTRO set horafinal='{hora}', modoregistro='{tipo}' where carnet={carnet} and fecha='{fecha}'")
         print("Hora de salida registrada")
     else:
-        cursor.execute(f"insert into REGISTRO (carnet,fecha,horallegada,modoregistro) values ({carnet},'{fch}','{hr}','{tipo}')")
+        cursor.execute(f"insert into REGISTRO (carnet,fecha,horallegada,modoregistro) values ({carnet},'{fecha}','{hora}','{tipo}')")
         print("Hora de llegada registrada")
     cursor.close()
     conn.commit()

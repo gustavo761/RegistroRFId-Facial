@@ -1,5 +1,6 @@
 from ast import AsyncFunctionDef
 from sys import exec_prefix
+from textwrap import fill
 
 from cv2 import circle
 import connArduino as cA
@@ -8,7 +9,7 @@ import entrenamientoRF as eRF
 import reconocimientoFacial as rF
 import validaciones as valid
 import connBD as cBD
-from tkinter import ttk
+from tkinter import Listbox, ttk
 from tkinter import messagebox as MessageBox
 import tkinter as tk
 import cv2
@@ -16,6 +17,7 @@ import imutils
 from PIL import Image
 from PIL import ImageTk
 import os 
+from datetime import datetime
 
 rostrosRegistrados = os.listdir('D:\Electronica\RegistroRFId-Facial/Data')
 nombresRegistrados = {}
@@ -44,6 +46,16 @@ def busquedaCarnet(rfid):
             return carnet
     return 0
 
+def obtenerFecha():
+    fecha = datetime.now().date()
+    fch = f"{fecha.year}-{fecha.month}-{fecha.day}"
+    return fch
+
+def obtenerHora():
+    hora = datetime.now().time()
+    hr = f"{hora.hour}:{hora.minute}:{hora.second}"
+    return hr
+
 # pasar parametros con command=lambda:funcion()
 
 def contarCoincidencias(nuevoValor,carnet):
@@ -55,8 +67,10 @@ def contarCoincidencias(nuevoValor,carnet):
             if contador > 9:
                 contador = 0
                 print("Identidad verificada")
-                cBD.registrarMarcado(carnet,"FACIAL")
-                
+                fecha = obtenerFecha()
+                hora = obtenerHora()
+                cBD.registrarMarcado(carnet,"FACIAL",fecha,hora)
+                lstRegistro.insert(1,f"{hora}   {devolverNombre(carnet)}")
         else:
             contador = 0
         valorAnterior = nuevoValor
@@ -106,7 +120,10 @@ def lectorRFID():
             #registrar en BD
             ci = busquedaCarnet(idRfid)
             if ci != 0:
-                cBD.registrarMarcado(ci,"RFID")
+                fecha = obtenerFecha()
+                hora = obtenerHora()
+                cBD.registrarMarcado(ci,"RFID",fecha,hora)
+                lstRegistro.insert(1,f"{hora}   {devolverNombre(ci)}")
             else:
                 labelNombre.set("Tarjeta no Registrada")
             print("codigo registrado principal "+ idRfid)
@@ -424,6 +441,7 @@ def salir():
 principal = tk.Tk()
 principal.geometry("1200x600")
 principal.resizable(height=False, width=False)
+principal.title("REGISTRO DE ASISTENCIA")
 fondoP = tk.PhotoImage(file="fondos/principal.png")
 labelFondo = tk.Label(principal, image=fondoP)
 labelFondo.place(x=0,y=0)
@@ -483,6 +501,24 @@ btnSalir = tk.Button(principal,
 )
 btnSalir.place(x=590,y=455)
 
+lstRegistro = tk.Listbox(principal,
+    width=37,
+    height=21,
+    bg="#ffffff",
+    fg="black",
+    relief="flat",
+    font=("Arial",12),
+    bd=0
+)
+lstRegistro.place(x=820,y=160)
+
+scroll = tk.Scrollbar(principal,
+    command=lstRegistro.yview
+)
+scroll.place(x=1160,y=155,height=410)
+
+lstRegistro.configure(yscrollcommand=scroll.set)
+
 lblVideo = tk.Label(principal)
 lblVideo.place(x=130,y=225)
 
@@ -494,9 +530,12 @@ contador = 0
 def iniciar():
     if cA.verificarSerial():
         if cBD.iniciarBD():
+            principal.after(500,cBD.iniciarBD)
+            principal.after(900,listarNombres)
             principal.after(1000,cA.iniciarComunicacion)
             principal.after(1500,lectorRFID)
             principal.after(2000,iniciarVideo) 
+            lstRegistro.insert(0,"  HORA                   USUARIO")
             principal.mainloop()
         else:
             respuestaBD = MessageBox.askquestion(
@@ -526,5 +565,6 @@ if __name__ == "__main__":
     principal.after(1000,cA.iniciarComunicacion)
     principal.after(1500,lectorRFID)
     principal.after(2000,iniciarVideo)
+    lstRegistro.insert(0,"  HORA                   USUARIO")
     principal.mainloop()
 
