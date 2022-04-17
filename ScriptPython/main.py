@@ -1,21 +1,15 @@
-from ast import AsyncFunctionDef
-from sys import exec_prefix
-from textwrap import fill
-
-from cv2 import circle
 import connArduino as cA
 import capturaRostro as cR
 import entrenamientoRF as eRF
 import reconocimientoFacial as rF
 import validaciones as valid
+import reporteExcel as rE
 import connBD as cBD
-from tkinter import Listbox, ttk
-from tkinter import messagebox as MessageBox
+from tkinter import Listbox, ttk, messagebox as MessageBox
 import tkinter as tk
 import cv2
 import imutils
-from PIL import Image
-from PIL import ImageTk
+from PIL import Image, ImageTk
 import os 
 from datetime import datetime
 
@@ -327,6 +321,72 @@ def abrirRegistrar():
 def abrirReporte():
     cambioEstado()
     detenerVideo()
+
+    def generarReporte():
+        carnet = edtCarnet.get()
+        mes = cmbMes.current()
+        anio = edtAnio.get()
+        anioInt = 0
+        validaciones = True
+        if len(carnet)!=0:
+            if not valid.verificarCarnet(carnet):
+                MessageBox.showinfo("ERROR","INGRESE UN NÚMERO VÁLIDO")
+                validaciones = False
+                print(carnet)
+        if mes==0:
+            MessageBox.showinfo("ERROR","SELECCIONE UN MES")
+            validaciones = False
+            print(mes)
+        try:
+            anioInt = int(anio)
+        except:
+            MessageBox.showinfo("ERROR","DEBE INGRESAR UN AÑO VÁLIDO")
+            validaciones = False
+
+        if validaciones:
+            if len(carnet)==0:
+                print("Reporte general")
+                listaResultados = []
+                consultaCarnet = cBD.consultaBD("select carnet from USUARIO")
+                if consultaCarnet[0] != 0:
+                    for resCarnet in consultaCarnet[1]:
+                        carnetGen = resCarnet["carnet"]
+                        tagGen = nombresRegistrados[int(carnetGen)][1]
+                        nombresApellidos = nombresRegistrados[int(carnetGen)][0]
+                        celularGen = cBD.buscarCelular(carnetGen)
+                        mesStr = str(mes)
+                        if mes < 10:
+                            mesStr = f"0{str(mes)}"
+                        res = cBD.consultaBD(f"select modoregistro,fecha, horallegada, horafinal, timediff(horafinal,horallegada)as hrtrabajo from REGISTRO where carnet={carnetGen} and fecha like '{anioInt}-{mesStr}-__' order by fecha")
+                        if res[0] != 0:
+                            listaResultados.append([carnetGen,mes,anioInt,celularGen,nombresApellidos,tagGen,res[1]])
+                        else:
+                            print("Usuario sin registro de asistencia",carnetGen)
+                    if len(listaResultados) != 0:
+                        rE.reporteGeneral(listaResultados)
+                    else:
+                        MessageBox.showinfo("ERROR","NO SE ENCONTRARON REGISTROS DE ASISTENCIA DE NINGÚN USUARIO EN EL MES Y AÑO INGRESADO")
+
+                else:
+                    MessageBox.showinfo("ERROR","NO SE REGISTRARON CÉDULAS DE IDENTIDAD")
+            else:
+                print("Reporte individual")
+                if cBD.consultaBDCarnet(carnet):
+                    datos = nombresRegistrados[int(carnet)]
+                    mesStr = str(mes)
+                    celular = cBD.buscarCelular(carnet)
+                    if mes < 10:
+                        mesStr = f"0{str(mes)}"
+                    res = cBD.consultaBD(f"select modoregistro,fecha, horallegada, horafinal, timediff(horafinal,horallegada)as hrtrabajo from REGISTRO where carnet={carnet} and fecha like '{anioInt}-{mesStr}-__' order by fecha")
+                    if res[0] != 0:
+                        rE.reporteIndividual([carnet,mesStr,anioInt,celular,datos[0],datos[1],res[1]])
+                    else:
+                        MessageBox.showinfo("ERROR","NO SE ENCONTRARON REGISTROS DE ASISTENCIA PARA EL CARNET INGRESADO")
+                else:
+                    MessageBox.showinfo("ERROR","CARNET NO REGISTRADO")
+            
+            
+
     def volverGenerar():
         cA.limpiarBufferEntrada()
         cambioEstado()
@@ -340,17 +400,20 @@ def abrirReporte():
     fondoP = tk.PhotoImage(file="fondos/generarReporte.png")
     labelFondo = tk.Label(reporte, image=fondoP)
     labelFondo.place(x=0,y=0)
-    meses = ['Elija un mes','Enero','Febrero','Marzo','Abril','Mayo',
-        'Junio','Julio','Agosto','Septiembre',
-        'Octubre','Noviembre','Diciembre']
+    meses = ['Elija un mes','ENERO','FEBRERO','MARZO','ABRIL','MAYO',
+        'JUNIO','JULIO','AGOSTO','SEPTIEMBRE',
+        'OCTUBRE','NOVIEMBRE','DICIEMBRE']
+    edtCarnetEntry = tk.StringVar()
     edtCarnet = tk.Entry(reporte,
         bg="#004aad",
         fg="white",
         relief="flat",
         font=("Comic Sans MS", 13, "bold"),
-        bd=0
+        bd=0,
+        textvariable=edtCarnetEntry
     )
     edtCarnet.place(x=215,y=120)
+
     cmbMes = ttk.Combobox(reporte,
         font=("Comic Sans MS", 13, "bold"),
         values=meses,
@@ -358,17 +421,19 @@ def abrirReporte():
     )
     cmbMes.place(x=215,y=183)
     cmbMes.current(0)
+    edtAnioEntry = tk.StringVar()
     edtAnio = tk.Entry(reporte,
         bg="#004aad",
         fg="white",
         relief="flat",
         font=("Comic Sans MS", 13, "bold"),
-        bd=0
+        bd=0,
+        textvariable=edtAnioEntry
     )
     edtAnio.place(x=215,y=250)
     btnGenerar = tk.Button(reporte,
         text="REPORTE", 
-        command="", 
+        command=generarReporte, 
         bg="#004aad",
         fg="white",
         relief="flat",
