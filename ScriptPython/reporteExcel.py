@@ -1,5 +1,4 @@
 from datetime import datetime
-from logging import exception
 from openpyxl import Workbook, load_workbook
 
 
