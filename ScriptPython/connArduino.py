@@ -12,11 +12,14 @@ def verificarSerial():
 
 # Inicializar comunicacion
 def iniciarComunicacion():
-    puerto.port = verificarSerial()
-    puerto.baudrate = 9600
-    puerto.timeout = 0.1
-    puerto.open()
-    print("puerto iniciado")
+    try:
+        puerto.port = verificarSerial()
+        puerto.baudrate = 9600
+        puerto.timeout = 0.1
+        puerto.open()
+        print("puerto iniciado")
+    except:
+        print("Lector no conectado")
 
 # Lectura de datos del puerto serial
 def lecturaDatos():
@@ -30,7 +33,10 @@ def finalizarComunicacion():
     print("Comunicacion finalizada")
 
 def limpiarBufferEntrada():
-    puerto.flushInput()
+    try:
+        puerto.flushInput()
+    except:
+        print("Error al limpiar buffer")
 # Prueba de comunicaciones con arduino
 # lectura de datos con 
 '''

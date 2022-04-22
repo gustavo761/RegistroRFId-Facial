@@ -15,7 +15,7 @@ def iniciarBD():
         print("Base de datos conectada")
         return True
     except:
-        print("no hay base de datos")
+        print("La base de datos no se encuentra disponible")
         return False
 
 def consultaBD(query):

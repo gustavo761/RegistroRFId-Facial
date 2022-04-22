@@ -94,12 +94,18 @@ def visualizar():
 
 def iniciarVideo():
     global cap
-    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
-    visualizar()
+    try:
+        cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+        visualizar()
+    except:
+        print("No se ha podido iniciar la captura de video")
 
 def detenerVideo():
     global cap
-    cap.release()
+    try:
+        cap.release()
+    except:
+        print("No se ha podido detener la captura de video")
 
 def cambioEstado():
     global rfidPrincipal
@@ -108,20 +114,24 @@ def cambioEstado():
 
 def lectorRFID():
     global rfidPrincipal
-    if rfidPrincipal:
-        idRfid = cA.lecturaDatos()
-        if idRfid:
-            #registrar en BD
-            ci = busquedaCarnet(idRfid)
-            if ci != 0:
-                fecha = obtenerFecha()
-                hora = obtenerHora()
-                cBD.registrarMarcado(ci,"RFID",fecha,hora)
-                lstRegistro.insert(1,f"{hora}   {devolverNombre(ci)}")
-            else:
-                labelNombre.set("Tarjeta no Registrada")
-            print("codigo registrado principal "+ idRfid)
-        principal.after(100,lectorRFID)
+    try:
+        if rfidPrincipal:
+            idRfid = cA.lecturaDatos()
+            if idRfid:
+                #registrar en BD
+                ci = busquedaCarnet(idRfid)
+                if ci != 0:
+                    fecha = obtenerFecha()
+                    hora = obtenerHora()
+                    cBD.registrarMarcado(ci,"RFID",fecha,hora)
+                    lstRegistro.insert(1,f"{hora}   {devolverNombre(ci)}")
+                else:
+                    labelNombre.set("Tarjeta no Registrada")
+                print("codigo registrado principal "+ idRfid)
+            principal.after(100,lectorRFID)
+    except:
+        print("No se ha podido conectar con el lector de tarjetas")
+    
 
 def abrirRegistrar():
     cambioEstado()
@@ -151,6 +161,7 @@ def abrirRegistrar():
                     cBD.updateBD(query)
                     cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
                     MessageBox.showinfo("ACTUALIZADO","DATOS ACTUALIZADOS CORRECTAMENTE")
+                    listarNombres()
             else:
                 if cBD.consultaBDRfid(lblRFIDlabel.get()):
                     MessageBox.showinfo("Tarjeta Registrada","La tarjeta ya ha sido registrada, seleccione otra")
@@ -158,6 +169,7 @@ def abrirRegistrar():
                     cBD.insertarUsuario(edtCarnetEntry.get(), edtNombresEntry.get(),edtApellidosEntry.get(),"Docente","Tarde",lblRFIDlabel.get())
                     cBD.insertarCelular(edtCarnetEntry.get(),edtCelularEntry.get())
                     MessageBox.showinfo("REGISTRADO","USUARIO REGISTRADO CORRECTAMENTE")
+                    listarNombres()
                     print("Usuario registrado") 
         else:
             MessageBox.showinfo("ERROR",mensaje)
@@ -384,8 +396,6 @@ def abrirReporte():
                         MessageBox.showinfo("ERROR","NO SE ENCONTRARON REGISTROS DE ASISTENCIA PARA EL CARNET INGRESADO")
                 else:
                     MessageBox.showinfo("ERROR","CARNET NO REGISTRADO")
-            
-            
 
     def volverGenerar():
         cA.limpiarBufferEntrada()

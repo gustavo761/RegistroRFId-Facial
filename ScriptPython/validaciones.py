@@ -4,7 +4,7 @@ import capturaRostro as cR
 
 def verificarNombre(cadena):
     for i in cadena:
-        if (not ((i>="A" and i<="z") or i==" ")):
+        if (not ((i>="A" and i<="z") or i==" " or i=="ñ")):
             return False
     return True
 
