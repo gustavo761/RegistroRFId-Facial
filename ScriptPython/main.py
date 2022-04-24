@@ -1,19 +1,34 @@
-import connArduino as cA
-import capturaRostro as cR
-import entrenamientoRF as eRF
-import reconocimientoFacial as rF
-import validaciones as valid
-import reporteExcel as rE
-import connBD as cBD
+import os 
+pathPrograma = 'C:/RegistroRfidFacial'
+pathData = 'C:/RegistroRfidFacial/Data'
+pathReporte = 'C:/RegistroRfidFacial/Reportes'
+pathCopiaSeguridad = 'C:/RegistroRfidFacial/CopiasSeguridad'
+if not os.path.exists(pathPrograma):
+    os.makedirs(pathPrograma)
+if not os.path.exists(pathData):
+    os.makedirs(pathData)
+if not os.path.exists(pathReporte):
+    os.makedirs(pathReporte)
+if not os.path.exists(pathCopiaSeguridad):
+    os.makedirs(pathCopiaSeguridad)
+    
+
+import scripts.connArduino as cA
+import scripts.capturaRostro as cR
+import scripts.entrenamientoRF as eRF
+import scripts.reconocimientoFacial as rF
+import scripts.validaciones as valid
+import scripts.reporteExcel as rE
+import scripts.connBD as cBD
 from tkinter import Listbox, ttk, messagebox as MessageBox
 import tkinter as tk
 import cv2
 import imutils
 from PIL import Image, ImageTk
-import os 
 from datetime import datetime
 
-rostrosRegistrados = os.listdir('D:\Electronica\RegistroRFId-Facial/Data')
+
+rostrosRegistrados = os.listdir('C:/RegistroRfidFacial/Data')
 nombresRegistrados = {}
 def listarNombres():
     global nombresRegistrados
@@ -79,12 +94,14 @@ def visualizar():
     if ret == True:
         frame = imutils.resize(frame, width=410)
         #frame = rF.recFacial(frame)
-        resultado = rF.recFacial(frame)
-        contarCoincidencias(resultado[0],resultado[2])
-        labelNombre.set(devolverNombre(resultado[2]))
-        #labelNombre.set(resultado[2])
-        frame = cv2.cvtColor(resultado[1], cv2.COLOR_BGR2RGB)
-
+        try:
+            resultado = rF.recFacial(frame)
+            contarCoincidencias(resultado[0],resultado[2])
+            labelNombre.set(devolverNombre(resultado[2]))
+            #labelNombre.set(resultado[2])
+            frame = cv2.cvtColor(resultado[1], cv2.COLOR_BGR2RGB)
+        except:
+            print("Debe registrar rostros antes de iniciar con el reconocimiento facial")
         im = Image.fromarray(frame)
         img = ImageTk.PhotoImage(image=im)
 
@@ -634,12 +651,5 @@ def iniciar():
             principal.destroy()
 
 if __name__ == "__main__":
-    #iniciar()
-    principal.after(500,cBD.iniciarBD)
-    principal.after(900,listarNombres)
-    principal.after(1000,cA.iniciarComunicacion)
-    principal.after(1500,lectorRFID)
-    principal.after(2000,iniciarVideo)
-    lstRegistro.insert(0,"  HORA                   USUARIO")
-    principal.mainloop()
+    iniciar()
 
