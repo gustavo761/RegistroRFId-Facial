@@ -208,15 +208,18 @@ def abrirRegistrar():
                 MessageBox.showinfo("ERROR",'CARNET NO REGISTRADO')
 
     def capturaRostro():
-        if valid.verificarCarnet(edtCarnetEntry.get()):
-            #verificar la lista de carnets en la carpeta data
-            if buscarCarnet(edtCarnetEntry.get()):
-                MessageBox.showinfo("ERROR","EL USUARIO YA REGISTRO SU ROSTRO EN EL SISTEMA")
-                print("Carnet ya registrado")
+        if cBD.consultaBDCarnet(edtCarnetEntry.get()):
+            if valid.verificarCarnet(edtCarnetEntry.get()):
+                #verificar la lista de carnets en la carpeta data
+                if buscarCarnet(edtCarnetEntry.get()):
+                    MessageBox.showinfo("ERROR","EL USUARIO YA REGISTRO SU ROSTRO EN EL SISTEMA")
+                    print("Carnet ya registrado")
+                else:
+                    cR.captura(edtCarnetEntry.get())
+                    MessageBox.showinfo("INFORMACIÓN","DIRIJASE A LA OPCIÓN DE ENTRENAR PARA APLICAR LOS CAMBIOS")
+                    print("Reiniciar el programa despues de entrenar")
             else:
-                cR.captura(edtCarnetEntry.get())
-                MessageBox.showinfo("INFORMACIÓN","DIRIJASE A LA OPCIÓN DE ENTRENAR PARA APLICAR LOS CAMBIOS")
-                print("Reiniciar el programa despues de entrenar")
+                MessageBox.showinfo("ERROR","INGRESE UN NÚMERO DE CARNET VÁLIDO")
         else:
             MessageBox.showinfo("ERROR","ANTES DEBE REGISTRAR EL USUARIO")
         print("hola mundo captura")
@@ -525,6 +528,7 @@ def abrirEntrenar():
 def salir():
     cA.finalizarComunicacion()
     detenerVideo()
+    cBD.generarCopiaSeguridad()
     cBD.desconectarBD()
     principal.destroy()
 
@@ -635,7 +639,7 @@ def iniciar():
                 "El servidor de Base de Datos no se encuentra en línea"+
                 "¿Desea reintentar?"
             )
-            if respuestaBD:
+            if respuestaBD == "yes":
                 iniciar()
             else:
                 principal.destroy()
