@@ -28,7 +28,7 @@ from PIL import Image, ImageTk
 from datetime import datetime
 
 
-rostrosRegistrados = os.listdir('C:/RegistroRfidFacial/Data')
+rostrosRegistrados = os.listdir(pathData)
 nombresRegistrados = {}
 def listarNombres():
     global nombresRegistrados
@@ -647,7 +647,7 @@ def iniciar():
         respuesta = MessageBox.askquestion(
             "Error",
             "El lector de tarjetas no se encuentra conectado\n"+
-            "¿Deser reintentar?"
+            "¿Desea reintentar?"
         )
         if respuesta == "yes":
             iniciar()

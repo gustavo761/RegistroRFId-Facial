@@ -1,6 +1,7 @@
 import pymysql.cursors
 from datetime import datetime
 import os
+import datosLogin as DL
 
 conn = None
 
@@ -10,9 +11,9 @@ def iniciarBD():
     try:
         conn = pymysql.connect(
                 host=ipHostBD,
-                user='director',
-                password='jmpadmin',
-                db='joseManuelPando',
+                user=DL.usuario,
+                password=DL.contraseña,
+                db=DL.baseDatos,
                 cursorclass=pymysql.cursors.DictCursor
             )
         print("Base de datos conectada")
