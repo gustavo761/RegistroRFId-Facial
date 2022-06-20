@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import datosLogin as DL
 
 def obtenerFecha():
     fecha = datetime.now().date()
@@ -13,7 +14,7 @@ def obtenerHora():
 
 def generarCopiaSeguridad():
     print("Iniciando copia de seguridad")
-    command = "mysqldump -h 192.168.1.2 -u director -pjmpadmin joseManuelPando" 
+    command = f"mysqldump -h 192.168.1.2 -u {DL.usuario()} -p{DL.contraseña} {DL.baseDatos()}" 
     command = command+f" > C:\RegistroRfidFacial\CopiasSeguridad\{obtenerFecha()}-{obtenerHora()}.sql"
     try:
         os.system(command)

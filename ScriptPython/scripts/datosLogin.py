@@ -1,6 +1,6 @@
-user='***',
-password='***',
-db='***',
+user='director',
+password='jmpadmin',
+db='joseManuelPando',
 
 def usuario():
     return user
